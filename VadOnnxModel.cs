@@ -3,8 +3,6 @@ using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace VadService;
 
-//NVLY: All came from github repo: https://github.com/snakers4/silero-vad/tree/master/examples/csharp
-//NVLY: All pretty straight forward => use the 'call' function, it validates the input and if valid builds an input object the model expects. When build just inference the model. Based on the output newstate is built, this is done so the previous result of the model can be used as input for the next piece of audio (meaning that when speaking in the last inference task the next one shall be more easily detected as speaking)
 public class VadOnnxModel : IDisposable
 {
     private readonly InferenceSession session;

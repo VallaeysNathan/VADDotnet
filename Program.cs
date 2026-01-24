@@ -1,13 +1,12 @@
-﻿// author: https://github.com/snakers4/silero-vad/tree/master/examples/csharp
-// author: NVLY
+﻿// initial source: https://github.com/snakers4/silero-vad/tree/master/examples/csharp
 
 using System.Diagnostics;
 using VadService;
 
 const int SAMPLE_RATE = 16000;
 const string MODEL_PATH = "./resources/silero_vad.onnx";
-const float THRESHOLD = 0.42f; // NVLY: tweaked with this a a bit, this seems to be the best option
-const double SILENCE_DURATION_SECONDS = 2; // NVLY: to not constantly trigger on/off add a silence duration to allow for brief pauses in speech
+const float THRESHOLD = 0.42f; // tweaked with this a a bit, this seems to be the best option
+const double SILENCE_DURATION_SECONDS = 1.5; // to not constantly trigger on/off add a silence duration to allow for brief pauses in speech
 
 try
 {
@@ -21,7 +20,7 @@ try
     int totalSpeechSegments = 0;
     double totalSpeechDuration = 0.0;
 
-    // NVLY: On Windows use Naudio to detect microphone
+    // On Windows use Naudio to detect microphone (not tested)
     var process = new Process
     {
         StartInfo = new ProcessStartInfo
@@ -35,7 +34,6 @@ try
         }
     };
 
-    //NVLY: start process to use mic as input
     process.Start();
     Console.WriteLine("\n\nRecording started...");
 
@@ -66,10 +64,10 @@ try
                     bytesRead += read;
                 }
 
-                //NVLY: if bytesRead is not yet filled up but cancellation is requested it exits the loop above and then breaks here (i know its not the best code...)
+                //if bytesRead is not yet filled up but cancellation is requested it exits the loop above and then breaks here (i know its not the best code...)
                 if (bytesRead < bytesPerFrame) break;
 
-                // Convert bytes (16-bit PCM) to float samples (-1.0 to 1.0)
+                //convert bytes (16-bit PCM) to float samples (-1.0 to 1.0)
                 for (int i = 0; i < frameSize; i++)
                 {
                     short sample = BitConverter.ToInt16(buffer, i * 2);
@@ -84,28 +82,25 @@ try
                     {
                         speechStartTime = DateTime.Now;
                         totalSpeechSegments++;
-                        Console.ForegroundColor = ConsoleColor.Green; // NVLY: Just for clear Logging
+                        Console.ForegroundColor = ConsoleColor.Green; // Just for clear Logging
                         Console.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ▶ Speech START (prob: {result.SpeechProbability:F3})");
                         Console.ResetColor();
                         isSpeaking = true;
                     }
-                    
-                    //NVLY: Reset silence timer
+
+                    //Reset silence timer
                     silenceStartTime = null;
                 }
                 else
                 {
                     if (isSpeaking)
                     {
-                        // NVLY: Used to be speaking, now silent
                         if (silenceStartTime == null)
                         {
-                            // First frame of silence - start the timer
                             silenceStartTime = DateTime.Now;
                         }
                         else
                         {
-                            // NVLY: Compare time of silence and the silence duration parameter
                             var silenceDuration = (DateTime.Now - silenceStartTime.Value).TotalSeconds;
                             if (silenceDuration >= SILENCE_DURATION_SECONDS)
                             {
@@ -137,7 +132,6 @@ try
     // Clean up the process
     try
     {
-        // stop reading the microphone
         process.Kill();
         process.WaitForExit();
     }
@@ -160,54 +154,3 @@ catch (Exception ex)
     Console.WriteLine($"Stack trace: {ex.StackTrace}");
     Console.ResetColor();
 }
-
-
-
-
-//NVLY: The below code does the same but instead of from streaming it uses a .wav file as input
-// using NAudio.Wave;
-// using VadService;
-
-// const int FRAME_SIZE = 512; 
-// const int SAMPLE_RATE = 16000;
-// const string MODEL_PATH = "./resources/silero_vad.onnx";
-// const string EXAMPLE_WAV_FILE = "./resources/test.wav";
-// const float THRESHOLD = 0.5f;
-
-
-// using var reader = new AudioFileReader(EXAMPLE_WAV_FILE);
-
-// var vad = new VadStreamDetector(
-//     MODEL_PATH,
-//     THRESHOLD,
-//     SAMPLE_RATE
-
-// );
-
-// float[] buffer = new float[FRAME_SIZE];
-// bool isSpeaking = false;
-// double currentTime = 0.0;
-
-// Console.WriteLine(DateTime.Now);
-// while (true)
-// {
-//     int samplesRead = reader.Read(buffer, 0, FRAME_SIZE);
-//     if (samplesRead == 0) break;
-
-//     var result = vad.ProcessFrame(buffer);
-
-//     if (result.IsSpeech && !isSpeaking)
-//     {
-//         Console.WriteLine($"Speech started at {currentTime:F2}s");
-//         isSpeaking = true;
-//     }
-//     else if (!result.IsSpeech && isSpeaking)
-//     {
-//         Console.WriteLine($"Speech ended at {currentTime:F2}s");
-//         isSpeaking = false;
-//     }
-
-//     currentTime += (double)samplesRead / SAMPLE_RATE;
-//     Thread.Sleep((int)(1000.0 * samplesRead / SAMPLE_RATE));
-// }
-// Console.WriteLine(DateTime.Now);

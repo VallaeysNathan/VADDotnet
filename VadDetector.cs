@@ -1,6 +1,4 @@
-﻿// using VADService;
-
-namespace VadService;
+﻿namespace VadService;
 
 public class VadStreamDetector
 {
