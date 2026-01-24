@@ -1,4 +1,4 @@
-# Dotnet VAD Service experiment (with audio stream)
+# C# VAD Service experiment (with audio stream)
 
 This is a small dotnet console application where a VAD model is used to detect when a person has started speaking with the input being an audio stream from the microphone.
 
