@@ -2,11 +2,12 @@
 
 using System.Diagnostics;
 using VadService;
+using System.IO;
 
 const int SAMPLE_RATE = 16000;
 const string MODEL_PATH = "./resources/silero_vad.onnx";
-const float THRESHOLD = 0.42f; // tweaked with this a a bit, this seems to be the best option
-const double SILENCE_DURATION_SECONDS = 1.5; // to not constantly trigger on/off add a silence duration to allow for brief pauses in speech
+const float THRESHOLD = 0.85f; // tweaked with this a a bit, this seems to be the best option
+const double SILENCE_DURATION_SECONDS = 0.8; // to not constantly trigger on/off add a silence duration to allow for brief pauses in speech
 
 try
 {
@@ -49,6 +50,11 @@ try
         cancellationSource.Cancel();
     };
 
+    string csvPath = $"vad.csv";
+    var csvWriter = new StreamWriter(csvPath, append: false);
+    csvWriter.WriteLine("Timestamp,SpeechProbability,IsSpeech");
+    csvWriter.AutoFlush = true; // ensures data is written immediately, useful if the process is killed
+
     var readTask = Task.Run(async () =>
     {
         try
@@ -75,6 +81,9 @@ try
                 }
 
                 var result = vad.ProcessFrame(audioFrame);
+                
+                var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                csvWriter.WriteLine($"{timestamp},{result.SpeechProbability:F4},{result.IsSpeech}");
 
                 if (result.IsSpeech)
                 {
@@ -136,6 +145,9 @@ try
         process.WaitForExit();
     }
     catch { }
+
+    csvWriter.Flush();
+    csvWriter.Dispose();
 
     Console.WriteLine("\nstatistics");
     Console.WriteLine($"Amount of speech segments: {totalSpeechSegments}");
